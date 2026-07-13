@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BC Cutblocks in Old Growth — CWH / CDF / ICH</title>
+<meta name="description" content="Current (already logged) and proposed cutblocks overlapping high-site-index old growth in BC's CWH, CDF and ICH biogeoclimatic zones, toggleable by productivity tier.">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<style>
+  :root {
+    --surface-1:      #fcfcfb;
+    --page-plane:     #f9f9f7;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --muted:          #898781;
+    --gridline:       #e1e0d9;
+    --border:         rgba(11,11,11,0.10);
+
+    --cwh:            #2a78d6;
+    --cdf:            #1baf7a;
+    --ich:            #eda100;
+    --protected:      #4a3aa7;
+    --current-cb:     #1f7a8c;
+    --proposed-cb:    #d1483a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --surface-1:      #1a1a19;
+      --page-plane:     #0d0d0d;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --muted:          #898781;
+      --gridline:       #2c2c2a;
+      --border:         rgba(255,255,255,0.10);
+
+      --cwh:            #3987e5;
+      --cdf:            #199e70;
+      --ich:            #c98500;
+      --protected:      #9085e9;
+      --current-cb:     #4fb0c4;
+      --proposed-cb:    #e8695a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --surface-1:      #1a1a19;
+    --page-plane:     #0d0d0d;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --gridline:       #2c2c2a;
+    --border:         rgba(255,255,255,0.10);
+    --cwh:            #3987e5;
+    --cdf:            #199e70;
+    --ich:            #c98500;
+    --protected:      #9085e9;
+    --current-cb:     #4fb0c4;
+    --proposed-cb:    #e8695a;
+  }
+  :root[data-theme="light"] {
+    --surface-1:      #fcfcfb;
+    --page-plane:     #f9f9f7;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --gridline:       #e1e0d9;
+    --border:         rgba(11,11,11,0.10);
+    --cwh:            #2a78d6;
+    --cdf:            #1baf7a;
+    --ich:            #eda100;
+    --protected:      #4a3aa7;
+    --current-cb:     #1f7a8c;
+    --proposed-cb:    #d1483a;
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--text-primary);
+    background: var(--page-plane);
+  }
+
+  #app { display: flex; height: 100vh; width: 100%; }
+  #map { flex: 1 1 auto; height: 100%; min-width: 0; }
+  #sidebar {
+    width: 390px;
+    flex: 0 0 390px;
+    background: var(--surface-1);
+    border-left: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 20px 20px 40px;
+  }
+
+  h1 { font-size: 1.25rem; line-height: 1.35; margin: 0 0 4px; }
+  .subtitle { color: var(--text-secondary); font-size: 0.85rem; line-height: 1.5; margin: 0 0 18px; }
+
+  .section-label {
+    font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em;
+    text-transform: uppercase; color: var(--muted); margin: 22px 0 10px;
+  }
+  .section-label:first-of-type { margin-top: 0; }
+
+  .stat-row { display: flex; gap: 10px; margin-bottom: 10px; }
+  .stat-tile {
+    flex: 1; background: var(--page-plane); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 12px;
+  }
+  .stat-tile .value { font-size: 1.35rem; font-weight: 600; line-height: 1.15; font-variant-numeric: proportional-nums; }
+  .stat-tile .label { font-size: 0.72rem; color: var(--text-secondary); margin-top: 2px; }
+
+  .zone-block { border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; }
+  .zone-header { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 0.88rem; margin-bottom: 8px; }
+  .zone-swatch { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+  .meter { position: relative; height: 8px; border-radius: 4px; background: var(--gridline); overflow: hidden; margin: 6px 0 4px; }
+  .meter > span { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; }
+  .meter-caption { display: flex; justify-content: space-between; font-size: 0.74rem; color: var(--text-secondary); }
+  .meter-caption b { color: var(--text-primary); font-weight: 600; }
+
+  .legend-row { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; margin-bottom: 7px; }
+  .legend-swatch { width: 14px; height: 14px; border-radius: 3px; flex: none; border: 1px solid var(--border); }
+  .legend-line { width: 14px; height: 0; border-top: 3px solid; flex: none; }
+
+  .layer-toggle {
+    display: flex; align-items: center; gap: 8px; font-size: 0.82rem;
+    padding: 4px 0; cursor: pointer; user-select: none;
+  }
+  .layer-toggle input { accent-color: var(--cwh); }
+
+  .tier-control {
+    display: flex; flex-direction: column; gap: 2px;
+    border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px;
+    margin-bottom: 4px;
+  }
+  .tier-control label {
+    display: flex; align-items: center; gap: 8px; font-size: 0.82rem;
+    padding: 3px 0; cursor: pointer; user-select: none;
+  }
+  .tier-control input { accent-color: var(--proposed-cb); }
+
+  .note {
+    font-size: 0.74rem; color: var(--muted); line-height: 1.5;
+    margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--gridline);
+  }
+  .note a { color: var(--text-secondary); }
+  .note p { margin: 0 0 8px; }
+
+  .leaflet-popup-content { font-size: 0.82rem; }
+
+  @media (max-width: 820px) {
+    #app { flex-direction: column; }
+    #sidebar {
+      width: 100%; flex: 0 0 auto; max-height: 46vh;
+      border-left: none; border-top: 1px solid var(--border); order: 2;
+    }
+    #map { order: 1; height: 54vh; flex: none; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="map"></div>
+  <div id="sidebar">
+    <h1>Cutblocks in Old Growth</h1>
+    <p class="subtitle">
+      Current (already logged) and proposed cutblocks that overlap
+      high-site-index old growth within BC's Coastal Western Hemlock (CWH),
+      Coastal Douglas-fir (CDF), and Interior Cedar-Hemlock (ICH)
+      biogeoclimatic zones.
+    </p>
+
+    <div class="section-label">Province-wide totals</div>
+    <div class="stat-row">
+      <div class="stat-tile">
+        <div class="value" id="stat-current-ha">–</div>
+        <div class="label">ha already logged in old growth</div>
+      </div>
+      <div class="stat-tile">
+        <div class="value" id="stat-proposed-ha">–</div>
+        <div class="label">ha proposed in standing old growth</div>
+      </div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-tile">
+        <div class="value" id="stat-current-count">–</div>
+        <div class="label">logged cutblocks</div>
+      </div>
+      <div class="stat-tile">
+        <div class="value" id="stat-proposed-count">–</div>
+        <div class="label">proposed cutblocks</div>
+      </div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-tile">
+        <div class="value" id="stat-proposed-pct">–</div>
+        <div class="label">% of remaining old growth proposed for logging</div>
+      </div>
+    </div>
+
+    <div class="section-label">By BEC zone</div>
+    <div id="zone-blocks"></div>
+
+    <div class="section-label">Basemap</div>
+    <label class="layer-toggle">
+      <input type="radio" name="basemap" id="basemap-satellite" checked>
+      Satellite imagery (Esri)
+    </label>
+    <label class="layer-toggle">
+      <input type="radio" name="basemap" id="basemap-osm">
+      OpenStreetMap
+    </label>
+
+    <div class="section-label">Productivity tier</div>
+    <p class="subtitle" style="margin:-2px 0 10px">Filters both cutblock layers to a minimum site-index percentile, computed per BEC zone.</p>
+    <div class="tier-control">
+      <label><input type="radio" name="tier" value="1" checked> All qualifying (≥ 75th pct.)</label>
+      <label><input type="radio" name="tier" value="2"> Top 15% (≥ 85th pct.)</label>
+      <label><input type="radio" name="tier" value="3"> Top 5% (≥ 95th pct.), highest productivity</label>
+    </div>
+
+    <div class="section-label">Map layers</div>
+    <p class="subtitle" style="margin:-2px 0 10px">Zoom in to reveal smaller cutblocks — only the largest draw at province-wide zoom, for speed.</p>
+    <label class="layer-toggle">
+      <input type="checkbox" id="toggle-current" checked>
+      Current cutblocks (already logged)
+    </label>
+    <label class="layer-toggle">
+      <input type="checkbox" id="toggle-proposed" checked>
+      Proposed cutblocks (not yet logged)
+    </label>
+    <label class="layer-toggle">
+      <input type="checkbox" id="toggle-parks">
+      Protected areas (parks / conservancies / national parks)
+    </label>
+
+    <div class="section-label">Legend</div>
+    <div class="legend-row"><span class="legend-swatch" id="current-swatch-1"></span> Current — ≥75th pct.</div>
+    <div class="legend-row"><span class="legend-swatch" id="current-swatch-2"></span> Current — ≥85th pct.</div>
+    <div class="legend-row"><span class="legend-swatch" id="current-swatch-3"></span> Current — ≥95th pct.</div>
+    <div class="legend-row"><span class="legend-swatch" id="proposed-swatch-1"></span> Proposed — ≥75th pct.</div>
+    <div class="legend-row"><span class="legend-swatch" id="proposed-swatch-2"></span> Proposed — ≥85th pct.</div>
+    <div class="legend-row"><span class="legend-swatch" id="proposed-swatch-3"></span> Proposed — ≥95th pct.</div>
+    <div class="legend-row"><span class="legend-line" style="border-color:var(--protected)"></span> Protected area boundary</div>
+    <p class="subtitle" style="margin:2px 0 0">Darker/more saturated = higher site index within the same status. Click any cutblock for its exact value.</p>
+
+    <div class="note">
+      <p><b>Definitions.</b> "Old growth" here uses the same threshold as the
+      <a href="https://jerichooconnell.github.io/bc-large-stature-forest/" target="_blank" rel="noopener">companion large-stature old-growth map</a>:
+      VRI stands aged &gt;150 yr with SITE_INDEX at or above the 75th
+      percentile for their BEC zone (<span id="thresholds-text">–</span>).
+      <b>Current</b> cutblocks (BC's consolidated cutblocks layer, air-photo
+      verified) are matched against the historical old-growth-capable
+      baseline — current + stands with an explicit harvest record on
+      equivalently high-site ground — since a logged stand's VRI age no
+      longer shows "old". <b>Proposed</b> cutblocks (BC Forest Tenure
+      cutblocks not yet disturbed and not retired, with a planned harvest
+      date roughly within the current decade) are matched against
+      <i>currently standing</i> old growth — the real question for a
+      proposed block. A cutblock touching more than one old-growth stand is
+      tagged with the highest site index it overlaps.</p>
+      <p>Source: BC Data Catalogue —
+      WHSE_FOREST_VEGETATION.VEG_CONSOLIDATED_CUT_BLOCKS_SP,
+      WHSE_FOREST_TENURE.FTEN_CUT_BLOCK_POLY_SVW, and VEG_COMP_LYR_R1_POLY
+      (VRI), all province-wide. Built from the
+      <a href="https://github.com/jerichooconnell/yew_project" target="_blank" rel="noopener">yew_project</a>
+      pipeline. Satellite imagery © Esri; street basemap © OpenStreetMap
+      contributors.</p>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+const fmtHa = n => n == null ? "–" : Math.round(n).toLocaleString() + " ha";
+const fmtPct = n => n == null ? "–" : n.toFixed(1) + "%";
+const fmtN = n => n == null ? "–" : Math.round(n).toLocaleString();
+
+const map = L.map('map', { zoomControl: true, preferCanvas: true }).setView([53.5, -125.5], 6);
+
+const satelliteBasemap = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+  attribution: 'Tiles &copy; Esri — Source: Esri, Maxar, Earthstar Geographics',
+  maxZoom: 18,
+});
+const osmBasemap = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+  maxZoom: 19,
+});
+satelliteBasemap.addTo(map);
+
+document.getElementById('basemap-satellite').addEventListener('change', e => {
+  if (e.target.checked) { map.removeLayer(osmBasemap); map.addLayer(satelliteBasemap); }
+});
+document.getElementById('basemap-osm').addEventListener('change', e => {
+  if (e.target.checked) { map.removeLayer(satelliteBasemap); map.addLayer(osmBasemap); }
+});
+
+// Mix a hex color toward white (positive percent) or black (negative percent),
+// same technique as the companion large-stature site: a fixed light/mid/dark
+// ramp reads reliably against a varying satellite basemap, opacity doesn't.
+function shadeColor(hex, percent) {
+  hex = hex.trim();
+  const num = parseInt(hex.slice(1), 16);
+  let r = (num >> 16) & 0xff, g = (num >> 8) & 0xff, b = num & 0xff;
+  const target = percent < 0 ? 0 : 255;
+  const p = Math.abs(percent) / 100;
+  r = Math.round((target - r) * p + r);
+  g = Math.round((target - g) * p + g);
+  b = Math.round((target - b) * p + b);
+  return '#' + [r, g, b].map(x => Math.max(0, Math.min(255, x)).toString(16).padStart(2, '0')).join('');
+}
+const TIER_SHADE = { 1: 42, 2: 0, 3: -38 };
+function statusColor(status) {
+  return getComputedStyle(document.documentElement).getPropertyValue(
+    status === 'current' ? '--current-cb' : '--proposed-cb'
+  ).trim();
+}
+function tierColor(status, tier) {
+  return shadeColor(statusColor(status), TIER_SHADE[tier] ?? 0);
+}
+
+for (const status of ['current', 'proposed']) {
+  for (const t of [1, 2, 3]) {
+    const el = document.getElementById(`${status}-swatch-${t}`);
+    if (el) el.style.background = tierColor(status, t);
+  }
+}
+
+const TIER_LABEL = { 1: '≥ 75th pct.', 2: '≥ 85th pct.', 3: '≥ 95th pct.' };
+function cutblockPopup(status, f) {
+  const p = f.properties;
+  const label = status === 'current' ? 'Current (logged) cutblock' : 'Proposed cutblock';
+  let html = `<b>${p.BEC_ZONE_CODE}</b> ${label}`
+    + `<br>Site index: <b>${p.SITE_INDEX} m</b> (${TIER_LABEL[p.tier] || ''})`;
+  if (status === 'current' && p.HARVEST_START_YEAR_CALENDAR) {
+    html += `<br>Harvested: ${p.HARVEST_START_YEAR_CALENDAR}`;
+  }
+  if (status === 'proposed' && p.PLANNED_HARVEST_DATE) {
+    html += `<br>Planned harvest: ${String(p.PLANNED_HARVEST_DATE).slice(0, 10)}`;
+  }
+  if (p.area_ha) html += `<br>Area: ${p.area_ha.toLocaleString()} ha`;
+  return html;
+}
+
+let minTier = 1;
+
+// Zoom-dependent thinning, same technique as the companion large-stature
+// site: at province-wide zoom only the largest cutblocks draw, smaller ones
+// reveal on zoom-in. Cutblocks are far more numerous than VRI old-growth
+// stands (82k vs ~2k) so this matters more here, not less.
+function minAreaForZoom(zoom, tiers) {
+  for (const [maxZoom, minHa] of tiers) {
+    if (zoom <= maxZoom) return minHa;
+  }
+  return 0;
+}
+const CURRENT_TIERS = [[6, 200], [7, 100], [8, 50]];
+const CURRENT_DETAIL_ZOOM = 9; // cutblocks below the 50ha overview cutoff only exist in the lazy-loaded detail file
+const PROPOSED_TIERS = [[6, 20], [7, 5]];
+
+function makeCutblockLayer(status, tiers) {
+  return L.geoJSON(null, {
+    filter: f => f.properties.tier >= minTier && f.properties.area_ha >= minAreaForZoom(map.getZoom(), tiers),
+    style: f => ({
+      color: shadeColor(statusColor(status), -55),
+      weight: 0.6,
+      fillColor: tierColor(status, f.properties.tier),
+      fillOpacity: 0.75,
+    }),
+    onEachFeature: (f, layer) => { layer.bindPopup(cutblockPopup(status, f)); },
+  });
+}
+
+const currentLayer = makeCutblockLayer('current', CURRENT_TIERS).addTo(map);
+const proposedLayer = makeCutblockLayer('proposed', PROPOSED_TIERS).addTo(map);
+let currentOverviewFeatures = [];
+let currentDetailFeatures = null;
+let currentDetailLoading = null;
+let proposedFeatures = [];
+
+function refreshLayer(layer, features) {
+  layer.clearLayers();
+  layer.addData(features);
+}
+
+function refreshCurrent() {
+  const combined = currentDetailFeatures
+    ? currentOverviewFeatures.concat(currentDetailFeatures)
+    : currentOverviewFeatures;
+  refreshLayer(currentLayer, combined);
+}
+
+function maybeLoadCurrentDetail() {
+  if (map.getZoom() < CURRENT_DETAIL_ZOOM || currentDetailFeatures || currentDetailLoading) return;
+  currentDetailLoading = fetch('data/current_detail.geojson').then(r => r.json()).then(gj => {
+    currentDetailFeatures = gj.features;
+    refreshCurrent();
+  }).catch(err => console.error('Failed to load current-cutblock detail layer', err));
+}
+
+map.on('zoomend', () => {
+  refreshCurrent();
+  maybeLoadCurrentDetail();
+  refreshLayer(proposedLayer, proposedFeatures);
+});
+
+const parksLayer = L.geoJSON(null, {
+  style: {
+    color: getComputedStyle(document.documentElement).getPropertyValue('--protected').trim() || '#4a3aa7',
+    weight: 1.5,
+    fill: false,
+    opacity: 0.85,
+  },
+  onEachFeature: (f, layer) => {
+    const p = f.properties;
+    layer.bindPopup(`<b>${p.PROTECTED_LANDS_NAME || 'Protected area'}</b><br>${p.PROTECTED_LANDS_DESIGNATION || ''}${p.OFFICIAL_AREA_HA ? '<br>' + Math.round(p.OFFICIAL_AREA_HA).toLocaleString() + ' ha' : ''}`);
+  }
+});
+
+Promise.all([
+  fetch('data/current_overview.geojson').then(r => r.json()),
+  fetch('data/proposed_cutblocks.geojson').then(r => r.json()),
+  fetch('data/stats.json').then(r => r.json()),
+]).then(([current, proposed, stats]) => {
+  currentOverviewFeatures = current.features;
+  proposedFeatures = proposed.features;
+  refreshCurrent();
+  maybeLoadCurrentDetail();
+  refreshLayer(proposedLayer, proposedFeatures);
+  renderStats(stats);
+}).catch(err => {
+  console.error('Failed to load map data', err);
+});
+
+fetch('data/park_contours.geojson').then(r => r.json()).then(parks => parksLayer.addData(parks));
+
+document.getElementById('toggle-current').addEventListener('change', e => {
+  e.target.checked ? map.addLayer(currentLayer) : map.removeLayer(currentLayer);
+});
+document.getElementById('toggle-proposed').addEventListener('change', e => {
+  e.target.checked ? map.addLayer(proposedLayer) : map.removeLayer(proposedLayer);
+});
+document.getElementById('toggle-parks').addEventListener('change', e => {
+  e.target.checked ? map.addLayer(parksLayer) : map.removeLayer(parksLayer);
+});
+
+document.querySelectorAll('input[name="tier"]').forEach(r => {
+  r.addEventListener('change', e => {
+    minTier = parseInt(e.target.value, 10);
+    refreshCurrent();
+    refreshLayer(proposedLayer, proposedFeatures);
+  });
+});
+
+function renderStats(stats) {
+  document.getElementById('stat-current-ha').textContent = fmtHa(stats.total_current_ha);
+  document.getElementById('stat-proposed-ha').textContent = fmtHa(stats.total_proposed_ha);
+  document.getElementById('stat-current-count').textContent = fmtN(stats.total_current_count);
+  document.getElementById('stat-proposed-count').textContent = fmtN(stats.total_proposed_count);
+  document.getElementById('stat-proposed-pct').textContent = fmtPct(stats.total_proposed_pct_of_standing);
+
+  const zoneNames = { CWH: 'Coastal Western Hemlock', CDF: 'Coastal Douglas-fir', ICH: 'Interior Cedar-Hemlock' };
+  if (stats.site_index_tiers) {
+    const parts = ['CWH', 'CDF', 'ICH']
+      .filter(z => stats.site_index_tiers[z])
+      .map(z => `${z} ≥${stats.site_index_tiers[z].p75} m`);
+    document.getElementById('thresholds-text').textContent = parts.join(', ');
+  }
+  const container = document.getElementById('zone-blocks');
+  container.innerHTML = '';
+  ['CWH', 'CDF', 'ICH'].forEach(z => {
+    const zs = stats.zones[z];
+    if (!zs) return;
+    const proposedPct = zs.proposed_pct_of_standing ?? 0;
+    const block = document.createElement('div');
+    block.className = 'zone-block';
+    block.innerHTML = `
+      <div class="zone-header">
+        <span class="zone-swatch" style="background:var(--${z.toLowerCase()})"></span>
+        ${z} — ${zoneNames[z]}
+      </div>
+      <div class="meter-caption"><span>Already logged in old growth</span><b>${fmtHa(zs.current_ha)}</b></div>
+      <div class="meter-caption"><span>${fmtN(zs.current_count)} cutblocks</span></div>
+      <div class="meter-caption" style="margin-top:8px"><span>Proposed, % of standing old growth</span><b>${fmtPct(zs.proposed_pct_of_standing)}</b></div>
+      <div class="meter"><span style="width:${Math.min(proposedPct,100)}%; background:var(--proposed-cb)"></span></div>
+      <div class="meter-caption"><span>${fmtHa(zs.proposed_ha)} of ${fmtHa(zs.standing_ha)} standing</span></div>
+    `;
+    container.appendChild(block);
+  });
+}
+</script>
+</body>
+</html>
