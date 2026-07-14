@@ -228,6 +228,47 @@
 
   .leaflet-popup-content { font-size: 0.82rem; }
 
+  .find-row { display: flex; gap: 6px; }
+  .find-row input { flex: 1 1 auto; min-width: 0; }
+  #near-me-btn, .list-actions button, #onboarding button {
+    font: inherit; font-size: 0.8rem; cursor: pointer;
+    border: 1px solid var(--border); border-radius: 6px;
+    background: var(--page-plane); color: var(--text-primary);
+    padding: 6px 10px; white-space: nowrap;
+  }
+  #near-me-btn:hover, .list-actions button:hover, #onboarding button:hover { background: var(--gridline); }
+  .find-hint { font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
+  .list-actions { display: flex; gap: 6px; margin-bottom: 6px; flex: none; }
+  .list-actions button { flex: 1; }
+
+  .cb-recency {
+    font-size: 0.6rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.04em; padding: 2px 6px; border-radius: 999px;
+    flex: none; color: #fff;
+  }
+  .cb-recency.r-new { background: #e8590c; }
+  .cb-recency.r-recent { background: #f08c00; }
+  .popup-recency { color: #b5540c; font-weight: 600; }
+  .popup-copy { display: inline-block; margin-top: 2px; }
+
+  #filter-summary {
+    font-size: 0.8rem; line-height: 1.4; color: var(--text-secondary);
+    background: var(--page-plane); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 10px; margin-bottom: 10px;
+  }
+  #filter-summary b { color: var(--text-primary); }
+
+  #onboarding {
+    position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%);
+    z-index: 1000; max-width: 92vw; width: 640px;
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px 14px; box-shadow: 0 4px 18px rgba(0,0,0,0.18);
+    font-size: 0.84rem; color: var(--text-secondary);
+  }
+  #onboarding span { flex: 1 1 240px; }
+  #onboarding-guide { background: var(--proposed-cb) !important; color: #fff !important; border-color: transparent !important; }
+
   @media (max-width: 1100px) {
     #app { flex-direction: column; height: auto; min-height: 100vh; }
     #map { order: 1; height: 54vh; flex: none; }
@@ -239,6 +280,14 @@
       width: 100%; flex: 0 0 auto; max-height: 46vh;
       border-left: none; border-top: 1px solid var(--border); order: 3;
     }
+    #list-panel h1, #sidebar h1 { cursor: pointer; }
+    #list-panel h1::after, #sidebar h1::after { content: ' ▾'; color: var(--muted); font-size: 0.8em; }
+    #list-panel.panel-collapsed, #sidebar.panel-collapsed {
+      height: auto; max-height: none; flex: 0 0 auto;
+    }
+    #list-panel.panel-collapsed > :not(h1),
+    #sidebar.panel-collapsed > :not(h1) { display: none; }
+    #list-panel.panel-collapsed h1::after, #sidebar.panel-collapsed h1::after { content: ' ▸'; }
   }
 </style>
 </head>
@@ -250,7 +299,16 @@
 </div>
 <div id="app">
   <div id="list-panel">
-    <h1>Cutblocks</h1>
+    <h1 id="list-panel-title">Cutblocks</h1>
+
+    <div class="filter-group">
+      <label for="place-search">Find an area</label>
+      <div class="find-row">
+        <input type="search" id="place-search" placeholder="Town or place in BC…">
+        <button type="button" id="near-me-btn" title="Zoom to my location">Near me</button>
+      </div>
+      <div class="find-hint" id="find-hint"></div>
+    </div>
 
     <div class="filter-group">
       <label for="filter-search">Search (name / licensee)</label>
@@ -286,8 +344,29 @@
         <label><input type="radio" name="tier" value="3"> Top 5% (≥ 95th pct.)</label>
       </div>
     </div>
+    <div class="filter-group">
+      <label for="filter-recency">Recently posted</label>
+      <select id="filter-recency">
+        <option value="0">Any posting date</option>
+        <option value="30">Posted in last 30 days</option>
+        <option value="90">Posted in last 90 days</option>
+        <option value="365">Posted in last year</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label for="sort-mode">Sort by</label>
+      <select id="sort-mode">
+        <option value="area">Largest area</option>
+        <option value="newest">Most recently posted</option>
+        <option value="si">Highest site index</option>
+      </select>
+    </div>
 
     <div class="cutblock-list-count" id="cutblock-list-count"></div>
+    <div class="list-actions">
+      <button type="button" id="download-csv" title="Download the filtered cutblocks as CSV">↓ CSV</button>
+      <button type="button" id="download-geojson" title="Download the filtered cutblocks as GeoJSON">↓ GeoJSON</button>
+    </div>
     <div class="cutblock-list-wrap">
       <div class="cutblock-list" id="cutblock-list"></div>
     </div>
@@ -321,6 +400,7 @@
         <div class="label">% of remaining old growth proposed for logging</div>
       </div>
     </div>
+    <div id="filter-summary" style="display:none"></div>
 
     <div class="section-label">Basemap</div>
     <label class="layer-toggle">
@@ -402,10 +482,16 @@
 
     <h3>Features</h3>
     <ul>
+      <li><b>Find an area</b> — search a town or place, or tap "Near me" to jump
+      to the cutblocks around your location.</li>
       <li><b>Search &amp; filter (left panel)</b> — search by cutblock name or
       licensee, and filter by BEC zone, NR region, NR district, TFL, and
       productivity tier. The list and the map always show the same set of
       cutblocks.</li>
+      <li><b>Recently posted</b> — a "new"/"recent" badge and a filter surface
+      the cutblocks posted in the last 30 or 90 days — the ones whose public
+      comment window is most likely still open. Sort by "most recently posted"
+      to put the freshest at the top.</li>
       <li><b>Productivity tier</b> — site index (a proxy for how big/valuable
       the trees on a stand can get) buckets each old-growth stand into a tier
       relative to its own BEC zone: 0 = below the 75th percentile, up to 3 =
@@ -413,7 +499,11 @@
       tier. Use this to prioritize the rarest, highest-productivity stands.</li>
       <li><b>Click any cutblock</b> (on the map or in the list) for its exact
       site index, licensee, planned area, posted/planned-development dates,
-      region, district, TFL, and a direct link to comment on it.</li>
+      region, district, TFL, a direct link to comment on it, and a "copy link"
+      button so you can share that exact block.</li>
+      <li><b>Share &amp; download</b> — the page URL captures your current
+      filters, so you can send someone a specific view; the CSV / GeoJSON
+      buttons export exactly the cutblocks you're looking at.</li>
       <li><b>Map layers</b> — toggle protected areas (parks, conservancies,
       national parks) to see what's already protected, and Statement of Intent
       boundaries to see whose traditional territory a cutblock falls within.</li>
@@ -480,6 +570,12 @@
     project built on public BC Data Catalogue data — it isn't affiliated with
     the Government of BC, the BC Treaty Commission, or any First Nation.</p>
   </div>
+</div>
+
+<div id="onboarding" style="display:none">
+  <span>This map shows <b>proposed logging in BC old growth</b>. Search for your area, click any block to see how to comment, or read the guide.</span>
+  <button type="button" id="onboarding-guide">How to use</button>
+  <button type="button" id="onboarding-dismiss" aria-label="Dismiss">Got it</button>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -550,7 +646,11 @@ function cutblockPopup(status, f) {
   if (p.FSP_HOLDER_NAME) html += `<br>Licensee: ${escapeHtml(p.FSP_HOLDER_NAME)}`;
   if (p.area_ha) html += `<br>Old-growth overlap: ${p.area_ha.toLocaleString()} ha`;
   if (p.PLANNED_AREA) html += `<br>Total planned block area: ${Number(p.PLANNED_AREA).toLocaleString(undefined, {maximumFractionDigits: 1})} ha`;
-  if (p.CREATE_DATE) html += `<br>Posted: ${String(p.CREATE_DATE).slice(0, 10)}`;
+  if (p.CREATE_DATE) {
+    html += `<br>Posted: ${String(p.CREATE_DATE).slice(0, 10)} (${relPosted(p.CREATE_DATE)})`;
+    const band = recencyBand(f);
+    if (band) html += `<br><span class="popup-recency">${band.text} — the public comment window may still be open; confirm on the FOM portal.</span>`;
+  }
   if (p.PLANNED_DEVELOPMENT_DATE) {
     html += `<br>Planned development: ${String(p.PLANNED_DEVELOPMENT_DATE).slice(0, 10)}`;
   }
@@ -559,8 +659,19 @@ function cutblockPopup(status, f) {
   if (p.TFL) html += `<br>TFL: ${escapeHtml(p.TFL)}${p.TFL_LICENCEE ? ' (' + escapeHtml(p.TFL_LICENCEE) + ')' : ''}`;
   if (p.FOM_ID != null) {
     html += `<br><a href="https://fom.nrs.gov.bc.ca/public/projects" target="_blank" rel="noopener">Comment on this block (FOM ID ${escapeHtml(String(p.FOM_ID))}${p.CUT_BLOCK_ID ? ', block ' + escapeHtml(String(p.CUT_BLOCK_ID)) : ''}) ↗</a>`;
+    html += `<br><a href="#" class="popup-copy" onclick="copyBlockLink(this, '${escapeHtml(blockId(p))}'); return false;">Copy link to this block</a>`;
   }
   return html;
+}
+
+function blockId(p) {
+  return `${p.FOM_ID}-${p.CUT_BLOCK_ID || ''}`;
+}
+function copyBlockLink(el, id) {
+  const url = `${location.origin}${location.pathname}#block=${encodeURIComponent(id)}`;
+  const done = () => { el.textContent = 'Link copied ✓'; setTimeout(() => { el.textContent = 'Copy link to this block'; }, 2000); };
+  if (navigator.clipboard) navigator.clipboard.writeText(url).then(done, () => { prompt('Copy this link:', url); });
+  else prompt('Copy this link:', url);
 }
 
 function zoomToFeature(f) {
@@ -576,7 +687,39 @@ let filterZone = '';
 let filterRegion = '';
 let filterDistrict = '';
 let filterTFL = '';
+let filterRecency = 0;   // 0 = all; otherwise max days-since-posted
+let sortMode = 'area';   // 'area' | 'newest' | 'si'
 let searchQuery = '';
+
+// Days since a cutblock was posted to the Forest Operations Map. This is a
+// proxy for "how likely is the public comment window still open" — the data
+// has no actual comment-period dates, so we deliberately talk about *posting*
+// recency and point people to the FOM portal for the real deadline.
+function daysAgo(dateStr) {
+  if (!dateStr) return null;
+  const d = new Date(String(dateStr).slice(0, 10));
+  if (isNaN(d.getTime())) return null;
+  return Math.floor((Date.now() - d.getTime()) / 86400000);
+}
+const RECENCY_BANDS = [
+  { max: 30, cls: 'r-new', badge: 'new', text: 'Posted in the last 30 days' },
+  { max: 90, cls: 'r-recent', badge: 'recent', text: 'Posted in the last 90 days' },
+];
+function recencyBand(f) {
+  const da = daysAgo(f.properties.CREATE_DATE);
+  if (da == null) return null;
+  for (const b of RECENCY_BANDS) if (da <= b.max) return b;
+  return null;
+}
+function relPosted(dateStr) {
+  const da = daysAgo(dateStr);
+  if (da == null) return '';
+  if (da < 1) return 'today';
+  if (da < 14) return da + 'd ago';
+  if (da < 60) return Math.round(da / 7) + 'w ago';
+  if (da < 730) return Math.round(da / 30) + 'mo ago';
+  return Math.round(da / 365) + 'y ago';
+}
 
 function matchesFilters(f) {
   const p = f.properties;
@@ -585,6 +728,10 @@ function matchesFilters(f) {
   if (filterRegion && p.REGION_NAME !== filterRegion) return false;
   if (filterDistrict && p.DISTRICT_NAME !== filterDistrict) return false;
   if (filterTFL && p.TFL !== filterTFL) return false;
+  if (filterRecency) {
+    const da = daysAgo(p.CREATE_DATE);
+    if (da == null || da > filterRecency) return false;
+  }
   if (searchQuery) {
     const hay = `${p.NAME || ''} ${p.FSP_HOLDER_NAME || ''} ${p.TFL_LICENCEE || ''}`.toLowerCase();
     if (!hay.includes(searchQuery)) return false;
@@ -592,30 +739,48 @@ function matchesFilters(f) {
   return true;
 }
 
+function anyFilterActive() {
+  return !!(filterZone || filterRegion || filterDistrict || filterTFL ||
+            filterRecency || searchQuery || minTier);
+}
+
+const SORTERS = {
+  area:   (a, b) => (b.properties.area_ha || 0) - (a.properties.area_ha || 0),
+  si:     (a, b) => (b.properties.SITE_INDEX || 0) - (a.properties.SITE_INDEX || 0),
+  newest: (a, b) => (daysAgo(a.properties.CREATE_DATE) ?? 1e9) - (daysAgo(b.properties.CREATE_DATE) ?? 1e9),
+};
+const SORT_LABEL = { area: 'largest first', si: 'highest site index', newest: 'most recently posted' };
+
+let filteredFeatures = [];
+
 function renderCutblockList() {
   const container = document.getElementById('cutblock-list');
   const countEl = document.getElementById('cutblock-list-count');
-  const filtered = proposedFeatures
-    .filter(matchesFilters)
-    .sort((a, b) => (b.properties.area_ha || 0) - (a.properties.area_ha || 0));
+  filteredFeatures = proposedFeatures.filter(matchesFilters).sort(SORTERS[sortMode] || SORTERS.area);
 
-  countEl.textContent = `${filtered.length.toLocaleString()} of ${proposedFeatures.length.toLocaleString()} cutblocks, largest first`;
+  const totalHa = filteredFeatures.reduce((s, f) => s + (f.properties.area_ha || 0), 0);
+  countEl.textContent = `${filteredFeatures.length.toLocaleString()} of ${proposedFeatures.length.toLocaleString()} cutblocks · `
+    + `${fmtHa(totalHa)} · ${SORT_LABEL[sortMode] || ''}`;
+  updateFilterSummary(totalHa);
+
   container.innerHTML = '';
-  if (filtered.length === 0) {
+  if (filteredFeatures.length === 0) {
     container.innerHTML = '<div class="cutblock-list-empty">No cutblocks match these filters.</div>';
     return;
   }
   const frag = document.createDocumentFragment();
-  filtered.forEach(f => {
+  filteredFeatures.forEach(f => {
     const p = f.properties;
+    const band = recencyBand(f);
     const row = document.createElement('div');
     row.className = 'cutblock-item';
     row.innerHTML = `
       <span class="cb-swatch" style="background:${tierColor('proposed', p.tier)}"></span>
       <div style="flex:1; min-width:0">
         <div class="cb-name">${escapeHtml(cutblockLabel(f))}</div>
-        <div class="cb-meta">${p.BEC_ZONE_CODE} · SI ${p.SITE_INDEX} m · ${(p.area_ha || 0).toLocaleString()} ha</div>
+        <div class="cb-meta">${p.BEC_ZONE_CODE} · SI ${p.SITE_INDEX} m · ${(p.area_ha || 0).toLocaleString()} ha · posted ${relPosted(p.CREATE_DATE)}</div>
       </div>
+      ${band ? `<span class="cb-recency ${band.cls}" title="${band.text}">${band.badge}</span>` : ''}
     `;
     row.addEventListener('click', () => zoomToFeature(f));
     frag.appendChild(row);
@@ -623,9 +788,22 @@ function renderCutblockList() {
   container.appendChild(frag);
 }
 
+function updateFilterSummary(totalHa) {
+  const el = document.getElementById('filter-summary');
+  if (!el) return;
+  if (!anyFilterActive()) { el.style.display = 'none'; return; }
+  let where = '';
+  if (filterDistrict) where = ` in ${filterDistrict}`;
+  else if (filterRegion) where = ` in ${filterRegion}`;
+  else if (filterZone) where = ` in ${filterZone}`;
+  el.style.display = 'block';
+  el.innerHTML = `<b>Filtered view:</b> ${fmtN(filteredFeatures.length)} cutblocks · ${fmtHa(totalHa)}${escapeHtml(where)}`;
+}
+
 function applyFilters() {
   refreshLayer(proposedLayer, proposedFeatures);
   renderCutblockList();
+  writeHash();
 }
 
 function uniqueSorted(values) {
@@ -731,6 +909,7 @@ Promise.all([
 ]).then(([proposed, stats]) => {
   proposedFeatures = proposed.features;
   populateFilterOptions();
+  applyHash();  // restore filter state / block from a shared URL, if any
   refreshLayer(proposedLayer, proposedFeatures);
   renderCutblockList();
   renderStats(stats);
@@ -775,6 +954,139 @@ document.querySelectorAll('input[name="tier"]').forEach(r => {
     applyFilters();
   });
 });
+
+document.getElementById('filter-recency').addEventListener('change', e => {
+  filterRecency = parseInt(e.target.value, 10) || 0;
+  applyFilters();
+});
+document.getElementById('sort-mode').addEventListener('change', e => {
+  sortMode = e.target.value;
+  applyFilters();
+});
+
+// --- Shareable deep links (URL hash <-> filter state) ---
+function writeHash() {
+  const params = new URLSearchParams();
+  if (filterZone) params.set('zone', filterZone);
+  if (filterRegion) params.set('region', filterRegion);
+  if (filterDistrict) params.set('district', filterDistrict);
+  if (filterTFL) params.set('tfl', filterTFL);
+  if (filterRecency) params.set('recency', filterRecency);
+  if (minTier) params.set('tier', minTier);
+  if (sortMode && sortMode !== 'area') params.set('sort', sortMode);
+  if (searchQuery) params.set('q', searchQuery);
+  const s = params.toString();
+  history.replaceState(null, '', s ? '#' + s : location.pathname + location.search);
+}
+function syncControls() {
+  document.getElementById('filter-zone').value = filterZone;
+  document.getElementById('filter-region').value = filterRegion;
+  document.getElementById('filter-district').value = filterDistrict;
+  document.getElementById('filter-tfl').value = filterTFL;
+  document.getElementById('filter-recency').value = String(filterRecency);
+  document.getElementById('sort-mode').value = sortMode;
+  document.getElementById('filter-search').value = searchQuery;
+  const tierRadio = document.querySelector(`input[name="tier"][value="${minTier}"]`);
+  if (tierRadio) tierRadio.checked = true;
+}
+function applyHash() {
+  const raw = location.hash.replace(/^#/, '');
+  if (!raw) return;
+  const params = new URLSearchParams(raw);
+  if (params.has('block')) {
+    const id = params.get('block');
+    const f = proposedFeatures.find(ff => blockId(ff.properties) === id);
+    if (f) setTimeout(() => zoomToFeature(f), 300);
+    return; // a block deep-link takes precedence over filter state
+  }
+  filterZone = params.get('zone') || '';
+  filterRegion = params.get('region') || '';
+  filterDistrict = params.get('district') || '';
+  filterTFL = params.get('tfl') || '';
+  filterRecency = parseInt(params.get('recency') || '0', 10) || 0;
+  minTier = parseInt(params.get('tier') || '0', 10) || 0;
+  sortMode = params.get('sort') || 'area';
+  searchQuery = (params.get('q') || '').toLowerCase();
+  syncControls();
+}
+
+// --- Find-your-area ---
+function showMapTab() { if (!tabBtnMap.classList.contains('active')) tabBtnMap.click(); }
+document.getElementById('near-me-btn').addEventListener('click', () => {
+  const hint = document.getElementById('find-hint');
+  if (!navigator.geolocation) { hint.textContent = 'Geolocation is not available in this browser.'; return; }
+  hint.textContent = 'Locating…';
+  navigator.geolocation.getCurrentPosition(
+    pos => { hint.textContent = ''; showMapTab(); map.setView([pos.coords.latitude, pos.coords.longitude], 11); },
+    () => { hint.textContent = 'Could not get your location — try the place search instead.'; },
+    { enableHighAccuracy: false, timeout: 10000 }
+  );
+});
+document.getElementById('place-search').addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  const q = e.target.value.trim();
+  if (!q) return;
+  const hint = document.getElementById('find-hint');
+  hint.textContent = 'Searching…';
+  // Nominatim (OpenStreetMap) geocoding — light interactive use; fails gracefully.
+  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=ca&q=${encodeURIComponent(q + ', British Columbia')}`;
+  fetch(url, { headers: { 'Accept': 'application/json' } })
+    .then(r => r.json())
+    .then(results => {
+      if (!results || !results.length) { hint.textContent = 'No match found — try a nearby town.'; return; }
+      hint.textContent = '';
+      showMapTab();
+      map.setView([parseFloat(results[0].lat), parseFloat(results[0].lon)], 11);
+    })
+    .catch(() => { hint.textContent = 'Search is unavailable right now — try again shortly.'; });
+});
+
+// --- Download the filtered set ---
+function downloadBlob(filename, text, type) {
+  const blob = new Blob([text], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+const CSV_COLS = ['NAME', 'BEC_ZONE_CODE', 'SITE_INDEX', 'tier', 'area_ha', 'PLANNED_AREA', 'FSP_HOLDER_NAME', 'CREATE_DATE', 'PLANNED_DEVELOPMENT_DATE', 'REGION_NAME', 'DISTRICT_NAME', 'TFL', 'TFL_LICENCEE', 'FOM_ID', 'CUT_BLOCK_ID'];
+function csvCell(v) {
+  if (v == null) return '';
+  const s = String(v);
+  return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+document.getElementById('download-csv').addEventListener('click', () => {
+  if (!filteredFeatures.length) return;
+  const rows = [CSV_COLS.join(',')];
+  filteredFeatures.forEach(f => rows.push(CSV_COLS.map(c => csvCell(f.properties[c])).join(',')));
+  downloadBlob('bc_cutblocks_filtered.csv', rows.join('\n'), 'text/csv');
+});
+document.getElementById('download-geojson').addEventListener('click', () => {
+  if (!filteredFeatures.length) return;
+  downloadBlob('bc_cutblocks_filtered.geojson', JSON.stringify({ type: 'FeatureCollection', features: filteredFeatures }), 'application/geo+json');
+});
+
+// --- First-visit onboarding banner ---
+(function initOnboarding() {
+  const el = document.getElementById('onboarding');
+  if (!el || localStorage.getItem('cb_onboarded') === '1') return;
+  el.style.display = 'flex';
+  const close = () => { el.style.display = 'none'; try { localStorage.setItem('cb_onboarded', '1'); } catch (_) {} };
+  document.getElementById('onboarding-dismiss').addEventListener('click', close);
+  document.getElementById('onboarding-guide').addEventListener('click', () => { close(); tabBtnHowToUse.click(); });
+})();
+
+// --- Mobile: collapse the side panels by tapping their heading ---
+function setupPanelCollapse(sel) {
+  const panel = document.querySelector(sel);
+  const h1 = panel && panel.querySelector('h1');
+  if (h1) h1.addEventListener('click', () => {
+    if (window.matchMedia('(max-width: 1100px)').matches) panel.classList.toggle('panel-collapsed');
+  });
+}
+setupPanelCollapse('#list-panel');
+setupPanelCollapse('#sidebar');
 
 function renderStats(stats) {
   document.getElementById('stat-proposed-ha').textContent = fmtHa(stats.total_proposed_ha);
