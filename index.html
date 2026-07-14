@@ -78,7 +78,43 @@
     background: var(--page-plane);
   }
 
-  #app { display: flex; height: 100vh; width: 100%; }
+  #top-tabs {
+    display: flex; align-items: center; gap: 4px;
+    height: 44px; flex: none; padding: 0 14px;
+    background: var(--surface-1); border-bottom: 1px solid var(--border);
+  }
+  #top-tabs .brand { font-weight: 600; font-size: 0.85rem; margin-right: 14px; color: var(--text-secondary); }
+  .tab-btn {
+    font: inherit; font-size: 0.85rem; font-weight: 500;
+    background: none; border: none; cursor: pointer;
+    padding: 6px 12px; border-radius: 6px;
+    color: var(--text-secondary);
+  }
+  .tab-btn:hover { background: var(--gridline); }
+  .tab-btn.active { background: var(--proposed-cb); color: #fff; }
+
+  #app { display: flex; height: calc(100vh - 44px); width: 100%; }
+  #app.hidden-tab { display: none; }
+  #how-to-use {
+    display: none; height: calc(100vh - 44px); width: 100%;
+    overflow-y: auto; background: var(--page-plane);
+  }
+  #how-to-use.active-tab { display: block; }
+  .htu-content { max-width: 760px; margin: 0 auto; padding: 36px 24px 60px; }
+  .htu-content h2 { font-size: 1.4rem; margin: 0 0 6px; }
+  .htu-content h3 { font-size: 1.05rem; margin: 30px 0 8px; }
+  .htu-content p { line-height: 1.6; color: var(--text-secondary); margin: 0 0 12px; }
+  .htu-content ul, .htu-content ol { line-height: 1.6; color: var(--text-secondary); padding-left: 22px; margin: 0 0 14px; }
+  .htu-content li { margin-bottom: 6px; }
+  .htu-content a { color: var(--cwh); }
+  .htu-content .action-card {
+    border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px 16px; margin-bottom: 12px; background: var(--surface-1);
+  }
+  .htu-content .action-card h4 { margin: 0 0 4px; font-size: 0.95rem; }
+  .htu-content .action-card p { margin: 0 0 6px; font-size: 0.88rem; }
+  .htu-content .action-card .meta { font-size: 0.78rem; color: var(--muted); }
+
   #map { flex: 1 1 auto; height: 100%; min-width: 0; }
   #sidebar {
     width: 360px;
@@ -207,6 +243,11 @@
 </style>
 </head>
 <body>
+<div id="top-tabs">
+  <span class="brand">BC Cutblocks in Old Growth</span>
+  <button class="tab-btn active" id="tab-btn-map" type="button">Map</button>
+  <button class="tab-btn" id="tab-btn-how-to-use" type="button">How to Use</button>
+</div>
 <div id="app">
   <div id="list-panel">
     <h1>Cutblocks</h1>
@@ -350,6 +391,97 @@
   </div>
 </div>
 
+<div id="how-to-use">
+  <div class="htu-content">
+    <h2>How to use this map</h2>
+    <p>This map tracks proposed BC cutblocks that overlap standing old growth in
+    the Coastal Western Hemlock (CWH), Coastal Douglas-fir (CDF), and Interior
+    Cedar-Hemlock (ICH) biogeoclimatic zones. It's built to help you find a
+    specific proposal near you, understand how significant it is, and take
+    concrete action while its public comment window is still open.</p>
+
+    <h3>Features</h3>
+    <ul>
+      <li><b>Search &amp; filter (left panel)</b> — search by cutblock name or
+      licensee, and filter by BEC zone, NR region, NR district, TFL, and
+      productivity tier. The list and the map always show the same set of
+      cutblocks.</li>
+      <li><b>Productivity tier</b> — site index (a proxy for how big/valuable
+      the trees on a stand can get) buckets each old-growth stand into a tier
+      relative to its own BEC zone: 0 = below the 75th percentile, up to 3 =
+      95th percentile and above. Darker/more saturated cutblock color = higher
+      tier. Use this to prioritize the rarest, highest-productivity stands.</li>
+      <li><b>Click any cutblock</b> (on the map or in the list) for its exact
+      site index, licensee, planned area, posted/planned-development dates,
+      region, district, TFL, and a direct link to comment on it.</li>
+      <li><b>Map layers</b> — toggle protected areas (parks, conservancies,
+      national parks) to see what's already protected, and Statement of Intent
+      boundaries to see whose traditional territory a cutblock falls within.</li>
+      <li><b>Data updates weekly</b> — proposed cutblocks are refreshed every
+      Monday from BC's Forest Operations Map, so newly posted proposals and
+      expired ones stay current.</li>
+    </ul>
+
+    <h3>Take action</h3>
+    <p>These are listed roughly in order of how directly they connect to a
+    specific cutblock on this map. All contact details below are current as
+    of when this page was last updated — always confirm on the linked
+    government page, since staff and contact details do change.</p>
+
+    <div class="action-card">
+      <h4>1. Comment on the specific proposed cutblock</h4>
+      <p>Every proposed cutblock has a legally required public review-and-comment
+      period (typically 30 days from posting) on BC's official Forest
+      Operations Map portal. Comments go directly to the plan holder and
+      Ministry of Forests staff. Click a cutblock on this map for its FOM ID,
+      then search that ID on the portal.</p>
+      <p><a href="https://fom.nrs.gov.bc.ca/public/projects" target="_blank" rel="noopener">fom.nrs.gov.bc.ca/public/projects ↗</a></p>
+    </div>
+
+    <div class="action-card">
+      <h4>2. Contact the Natural Resource District office</h4>
+      <p>Each cutblock's popup shows its NR District — that district office
+      administers the tenure and is the most direct government contact for a
+      specific operating area.</p>
+      <p><a href="https://www2.gov.bc.ca/gov/content/industry/forestry/managing-our-forest-resources/ministry-of-forests-lands-and-natural-resource-operations-region-district-contacts" target="_blank" rel="noopener">District office directory ↗</a></p>
+    </div>
+
+    <div class="action-card">
+      <h4>3. Reach out to the Treaty First Nation whose territory is affected</h4>
+      <p>Turn on the Statement of Intent layer to see whose traditional
+      territory a cutblock falls within. The BC Treaty Commission's own
+      interactive map links out to individual First Nations for further
+      information and contact details.</p>
+      <p><a href="https://bctreaty.ca/map/" target="_blank" rel="noopener">BC Treaty Commission interactive map ↗</a> ·
+      <a href="https://bctreaty.ca/about-us/contact-us/" target="_blank" rel="noopener">BC Treaty Commission contact ↗</a></p>
+      <p class="meta">604-482-9200 · info@bctreaty.ca</p>
+    </div>
+
+    <div class="action-card">
+      <h4>4. File a concern with the BC Forest Practices Board</h4>
+      <p>The Board is government-funded but independent, and investigates
+      public complaints about forest planning, harvesting practices, and
+      resource protection (water, viewscapes, recreation) — including
+      whether government enforcement itself was adequate.</p>
+      <p><a href="https://www.bcfpb.ca/contact/file-concern/" target="_blank" rel="noopener">File a concern ↗</a></p>
+      <p class="meta">1-800-994-5899 (BC toll-free) · fpbcomplaints@bcfpb.ca</p>
+    </div>
+
+    <div class="action-card">
+      <h4>5. Contact the Ministry of Forests / Office of the Minister</h4>
+      <p>For policy-level concerns — e.g. questioning whether old growth this
+      significant should be available for harvest at all — the Minister's
+      office and general public-inquiry line are the province-wide contact.</p>
+      <p><a href="https://www2.gov.bc.ca/gov/content/governments/organizational-structure/ministries-organizations/ministries/forests/ministry-contacts" target="_blank" rel="noopener">Ministry of Forests contacts ↗</a></p>
+      <p class="meta">1-800-663-7867 · ServiceBC@gov.bc.ca</p>
+    </div>
+
+    <p class="meta" style="margin-top:24px">This is an independent, unofficial
+    project built on public BC Data Catalogue data — it isn't affiliated with
+    the Government of BC, the BC Treaty Commission, or any First Nation.</p>
+  </div>
+</div>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script>
 const fmtHa = n => n == null ? "–" : Math.round(n).toLocaleString() + " ha";
@@ -425,6 +557,9 @@ function cutblockPopup(status, f) {
   if (p.REGION_NAME) html += `<br>Region: ${escapeHtml(p.REGION_NAME)}`;
   if (p.DISTRICT_NAME) html += `<br>District: ${escapeHtml(p.DISTRICT_NAME)}`;
   if (p.TFL) html += `<br>TFL: ${escapeHtml(p.TFL)}${p.TFL_LICENCEE ? ' (' + escapeHtml(p.TFL_LICENCEE) + ')' : ''}`;
+  if (p.FOM_ID != null) {
+    html += `<br><a href="https://fom.nrs.gov.bc.ca/public/projects" target="_blank" rel="noopener">Comment on this block (FOM ID ${escapeHtml(String(p.FOM_ID))}${p.CUT_BLOCK_ID ? ', block ' + escapeHtml(String(p.CUT_BLOCK_ID)) : ''}) ↗</a>`;
+  }
   return html;
 }
 
@@ -614,6 +749,24 @@ document.getElementById('toggle-parks').addEventListener('change', e => {
 });
 document.getElementById('toggle-soi').addEventListener('change', e => {
   e.target.checked ? map.addLayer(soiLayer) : map.removeLayer(soiLayer);
+});
+
+const tabBtnMap = document.getElementById('tab-btn-map');
+const tabBtnHowToUse = document.getElementById('tab-btn-how-to-use');
+const appEl = document.getElementById('app');
+const howToUseEl = document.getElementById('how-to-use');
+tabBtnMap.addEventListener('click', () => {
+  tabBtnMap.classList.add('active');
+  tabBtnHowToUse.classList.remove('active');
+  howToUseEl.classList.remove('active-tab');
+  appEl.classList.remove('hidden-tab');
+  map.invalidateSize();
+});
+tabBtnHowToUse.addEventListener('click', () => {
+  tabBtnHowToUse.classList.add('active');
+  tabBtnMap.classList.remove('active');
+  appEl.classList.add('hidden-tab');
+  howToUseEl.classList.add('active-tab');
 });
 
 document.querySelectorAll('input[name="tier"]').forEach(r => {

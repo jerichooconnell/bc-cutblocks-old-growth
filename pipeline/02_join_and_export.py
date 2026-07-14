@@ -114,6 +114,7 @@ proposed_cols = [
     "BEC_ZONE_CODE", "SITE_INDEX", "tier", "area_ha",
     "NAME", "FSP_HOLDER_NAME", "CREATE_DATE", "PLANNED_DEVELOPMENT_DATE", "PLANNED_AREA",
     "REGION_NAME", "DISTRICT_NAME", "TFL", "TFL_LICENCEE",
+    "FOM_ID", "CUT_BLOCK_ID",
     "geometry",
 ]
 proposed_out = proposed[proposed_cols].copy().to_crs(4326)
