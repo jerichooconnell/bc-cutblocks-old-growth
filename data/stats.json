@@ -1,10 +1,10 @@
 {
   "zones": {
     "CWH": {
-      "proposed_ha": 31834.7,
-      "proposed_count": 2885,
-      "standing_ha": 4874352.9,
-      "proposed_pct_of_standing": 0.7
+      "proposed_ha": 32533.0,
+      "proposed_count": 3023,
+      "standing_ha": 5410662.8,
+      "proposed_pct_of_standing": 0.6
     },
     "CDF": {
       "proposed_ha": 0.0,
@@ -13,17 +13,17 @@
       "proposed_pct_of_standing": 0.0
     },
     "ICH": {
-      "proposed_ha": 29529.3,
-      "proposed_count": 1967,
-      "standing_ha": 1739336.3,
+      "proposed_ha": 29128.9,
+      "proposed_count": 2017,
+      "standing_ha": 1764942.4,
       "proposed_pct_of_standing": 1.7
     }
   },
   "site_index_tiers": {
     "CWH": {
-      "p75": 23.8,
-      "p85": 27.1,
-      "p95": 32.1
+      "p75": 23.0,
+      "p85": 27.0,
+      "p95": 32.0
     },
     "CDF": {
       "p75": 30.1,
@@ -31,13 +31,14 @@
       "p95": 33.9
     },
     "ICH": {
-      "p75": 19.7,
+      "p75": 19.6,
       "p85": 21.0,
       "p95": 24.0
     }
   },
-  "total_proposed_ha": 61364.0,
-  "total_proposed_count": 4852,
-  "total_standing_ha": 6619263.8,
-  "total_proposed_pct_of_standing": 0.9
+  "total_proposed_ha": 61661.9,
+  "total_proposed_count": 5040,
+  "total_standing_ha": 7181179.8,
+  "total_proposed_pct_of_standing": 0.9,
+  "updated": "2026-07-14"
 }

@@ -21,6 +21,7 @@
     --ich:            #eda100;
     --protected:      #4a3aa7;
     --proposed-cb:    #d1483a;
+    --soi:            #1f7a8c;
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -37,6 +38,7 @@
       --ich:            #c98500;
       --protected:      #9085e9;
       --proposed-cb:    #e8695a;
+      --soi:            #4fb0c4;
     }
   }
   :root[data-theme="dark"] {
@@ -51,6 +53,7 @@
     --ich:            #c98500;
     --protected:      #9085e9;
     --proposed-cb:    #e8695a;
+    --soi:            #4fb0c4;
   }
   :root[data-theme="light"] {
     --surface-1:      #fcfcfb;
@@ -64,6 +67,7 @@
     --ich:            #eda100;
     --protected:      #4a3aa7;
     --proposed-cb:    #d1483a;
+    --soi:            #1f7a8c;
   }
 
   * { box-sizing: border-box; }
@@ -257,6 +261,7 @@
       zones. Filter by productivity tier to isolate the rarer high-site,
       big-tree-capable stands.
     </p>
+    <p class="subtitle" style="margin:-12px 0 18px; font-size:0.72rem;" id="data-updated"></p>
 
     <div class="section-label">Province-wide totals</div>
     <div class="stat-row">
@@ -295,6 +300,10 @@
       <input type="checkbox" id="toggle-parks">
       Protected areas (parks / conservancies / national parks)
     </label>
+    <label class="layer-toggle">
+      <input type="checkbox" id="toggle-soi">
+      Statement of Intent boundaries (BC Treaty Commission)
+    </label>
     <p class="subtitle" style="margin:10px 0 0">Search and filter the cutblock list on the left — those filters (including productivity tier) also apply to what's drawn on the map.</p>
 
     <div class="section-label">Legend</div>
@@ -303,6 +312,7 @@
     <div class="legend-row"><span class="legend-swatch" id="proposed-swatch-2"></span> Proposed — ≥85th pct.</div>
     <div class="legend-row"><span class="legend-swatch" id="proposed-swatch-3"></span> Proposed — ≥95th pct.</div>
     <div class="legend-row"><span class="legend-line" style="border-color:var(--protected)"></span> Protected area boundary</div>
+    <div class="legend-row"><span class="legend-line" style="border-color:var(--soi); border-style:dashed"></span> Statement of Intent boundary</div>
     <p class="subtitle" style="margin:2px 0 0">Darker/more saturated = higher site index. Click any cutblock for its exact value.</p>
 
     <div class="note">
@@ -324,9 +334,15 @@
       signal; FOM's status field is unambiguous. A cutblock touching more
       than one old-growth stand is tagged with the highest site index it
       overlaps.</p>
+      <p><b>Statement of Intent boundaries</b> are the traditional-territory
+      boundaries First Nations have registered with the BC Treaty Commission
+      to enter treaty negotiations — a claim/negotiation area, not a legal
+      land designation, and boundaries frequently overlap between
+      neighbouring nations. Shown for geographic context only; off by
+      default.</p>
       <p>Source: BC Data Catalogue —
-      WHSE_FOREST_TENURE.FOM_CUTBLOCK_SP and VEG_COMP_LYR_R1_POLY
-      (VRI), province-wide. Built from the
+      WHSE_FOREST_TENURE.FOM_CUTBLOCK_SP, VEG_COMP_LYR_R1_POLY (VRI), and
+      REG_LEGAL_AND_ADMIN_BOUNDARIES.QSOI_BC_REGIONS, province-wide. Built from the
       <a href="https://github.com/jerichooconnell/yew_project" target="_blank" rel="noopener">yew_project</a>
       pipeline. Satellite imagery © Esri; street basemap © OpenStreetMap
       contributors.</p>
@@ -560,6 +576,20 @@ const parksLayer = L.geoJSON(null, {
   }
 });
 
+const soiLayer = L.geoJSON(null, {
+  style: {
+    color: getComputedStyle(document.documentElement).getPropertyValue('--soi').trim() || '#1f7a8c',
+    weight: 1.5,
+    dashArray: '4 3',
+    fill: false,
+    opacity: 0.9,
+  },
+  onEachFeature: (f, layer) => {
+    const p = f.properties;
+    layer.bindPopup(`<b>${escapeHtml(p.NAME || 'Statement of Intent boundary')}</b><br>Statement of Intent boundary — BC Treaty Commission${p.SCALE ? `<br>Source scale ${escapeHtml(p.SCALE)}` : ''}`);
+  }
+});
+
 Promise.all([
   fetch('data/proposed_cutblocks.geojson').then(r => r.json()),
   fetch('data/stats.json').then(r => r.json()),
@@ -574,12 +604,16 @@ Promise.all([
 });
 
 fetch('data/park_contours.geojson').then(r => r.json()).then(parks => parksLayer.addData(parks));
+fetch('data/soi_boundaries.geojson').then(r => r.json()).then(soi => soiLayer.addData(soi));
 
 document.getElementById('toggle-proposed').addEventListener('change', e => {
   e.target.checked ? map.addLayer(proposedLayer) : map.removeLayer(proposedLayer);
 });
 document.getElementById('toggle-parks').addEventListener('change', e => {
   e.target.checked ? map.addLayer(parksLayer) : map.removeLayer(parksLayer);
+});
+document.getElementById('toggle-soi').addEventListener('change', e => {
+  e.target.checked ? map.addLayer(soiLayer) : map.removeLayer(soiLayer);
 });
 
 document.querySelectorAll('input[name="tier"]').forEach(r => {
@@ -593,6 +627,11 @@ function renderStats(stats) {
   document.getElementById('stat-proposed-ha').textContent = fmtHa(stats.total_proposed_ha);
   document.getElementById('stat-proposed-count').textContent = fmtN(stats.total_proposed_count);
   document.getElementById('stat-proposed-pct').textContent = fmtPct(stats.total_proposed_pct_of_standing);
+
+  const updatedEl = document.getElementById('data-updated');
+  if (updatedEl && stats.updated) {
+    updatedEl.textContent = `Proposed-cutblock data last updated ${stats.updated}`;
+  }
 
   if (stats.site_index_tiers) {
     const parts = ['CWH', 'CDF', 'ICH']
