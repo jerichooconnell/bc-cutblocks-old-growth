@@ -1,8 +1,8 @@
 {
   "zones": {
     "CWH": {
-      "proposed_ha": 32852.7,
-      "proposed_count": 3115,
+      "proposed_ha": 32880.1,
+      "proposed_count": 3123,
       "standing_ha": 5410662.8,
       "proposed_pct_of_standing": 0.6
     },
@@ -13,8 +13,8 @@
       "proposed_pct_of_standing": 0.0
     },
     "ICH": {
-      "proposed_ha": 29449.6,
-      "proposed_count": 2046,
+      "proposed_ha": 29536.3,
+      "proposed_count": 2055,
       "standing_ha": 1764942.4,
       "proposed_pct_of_standing": 1.7
     }
@@ -36,9 +36,9 @@
       "p95": 24.0
     }
   },
-  "total_proposed_ha": 62302.3,
-  "total_proposed_count": 5161,
+  "total_proposed_ha": 62416.4,
+  "total_proposed_count": 5178,
   "total_standing_ha": 7181179.8,
   "total_proposed_pct_of_standing": 0.9,
-  "updated": "2026-08-10"
+  "updated": "2026-08-17"
 }
