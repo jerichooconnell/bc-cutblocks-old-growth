@@ -13,8 +13,8 @@
       "proposed_pct_of_standing": 0.0
     },
     "ICH": {
-      "proposed_ha": 31508.0,
-      "proposed_count": 2145,
+      "proposed_ha": 31727.1,
+      "proposed_count": 2167,
       "standing_ha": 1764942.4,
       "proposed_pct_of_standing": 1.8
     }
@@ -36,9 +36,9 @@
       "p95": 24.0
     }
   },
-  "total_proposed_ha": 65881.8,
-  "total_proposed_count": 5429,
+  "total_proposed_ha": 66100.9,
+  "total_proposed_count": 5451,
   "total_standing_ha": 7181179.8,
   "total_proposed_pct_of_standing": 0.9,
-  "updated": "2026-10-26"
+  "updated": "2026-11-02"
 }
